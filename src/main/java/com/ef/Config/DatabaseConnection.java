@@ -35,7 +35,7 @@ public class DatabaseConnection implements AutoCloseable {
                     properties.getProperty("db.password"));
         } catch (SQLException e) {
             connection = null;
-            throw new RuntimeException("Can't establish connection with database!");
+            throw new RuntimeException("Can't establish connection with database! Check resources/config.properties file.");
         }
     }
 

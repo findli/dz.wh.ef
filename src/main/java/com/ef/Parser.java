@@ -23,10 +23,13 @@ import java.util.stream.Stream;
  * skype yanchik366
  * email burtovoy.ian@gmail.com
  * <p>
+ *     set database connection parameters:
+ * /src/main/resources/config.properties
+ *
  * mvn clean compile assembly:single; java -cp "target/parser.jar"  com.ef.Parser --accesslog=/path/to/access.log \
- * --startDate=2017-01-01.00:00:00 \
- * --duration=daily \
- * --threshold=500
+ * * --startDate=2017-01-01.00:00:00 \
+ * * --duration=daily \
+ * * --threshold=500
  */
 @Slf4j
 public class Parser {
@@ -40,15 +43,21 @@ public class Parser {
                     params.get(Variable.DURATION), params.get(Variable.THRESHOLD));
             final Integer integer = Integer.valueOf(params.get(Variable.THRESHOLD));
             final Set<Map.Entry<String, Integer>> entries = countLines.entrySet();
-            final List<Map.Entry<String, Integer>> blockedIp = entries
-                    .stream()
-                    .filter(stringIntegerMap -> stringIntegerMap.getValue() > integer)
-                    .collect(Collectors.toList());
+            final List<Map.Entry<String, Integer>> blockedIp = getBlockedIp(integer, entries);
             saveBlockedIp(blockedIp, params.get(Variable.STARTDATE), params.get(Variable.DURATION), params.get(Variable.THRESHOLD));
             printResult(blockedIp);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
+            log.error("If database connection not has been established run without database.");
+            ParserWithoutDataBase.run(args);
         }
+    }
+
+    private static List<Map.Entry<String, Integer>> getBlockedIp(Integer integer, Set<Map.Entry<String, Integer>> entries) {
+        return entries
+                        .stream()
+                        .filter(stringIntegerMap -> stringIntegerMap.getValue() > integer)
+                        .collect(Collectors.toList());
     }
 
     private static void printResult(List<Map.Entry<String, Integer>> blockedIp) {
@@ -144,15 +153,15 @@ public class Parser {
                         statement.setString(1, parsedLine.ip);
                         statement.setString(2, parsedLine.time.toString());
                         statement.executeUpdate();
-                    } catch (SQLIntegrityConstraintViolationException e) {
+                    } catch (SQLIntegrityConstraintViolationException sqlIntegrity) {
                         try {
                             if (!Boolean.valueOf(properties.getProperty("omitDuplicationMessage"))) {
                                 log.debug("If you want to omit duplicate entry log message truncate log table" +
                                         " or set property omitDuplicationMessage=true in configuration file!");
-                                log.debug(e.getMessage(), e);
+                                log.debug(sqlIntegrity.getMessage(), sqlIntegrity);
                             }
-                        } catch (Exception ex) {
-                            log.error(ex.getMessage(), ex);
+                        } catch (Exception e) {
+                            log.error(e.getMessage(), e);
                         }
                     } catch (RuntimeException e) {
                         log.error("Wrong line format!( " + line + ")", e);

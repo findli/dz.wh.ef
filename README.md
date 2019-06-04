@@ -5,7 +5,9 @@
   
   email burtovoy.ian@gmail.com
  
- 
+set database connection parameters:
+/src/main/resources/config.properties
+
   mvn clean compile assembly:single; java -cp "target/parser.jar"  com.ef.Parser --accesslog=/path/to/access.log \
   --startDate=2017-01-01.00:00:00 \
   --duration=daily \
